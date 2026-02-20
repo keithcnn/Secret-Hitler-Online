@@ -110,6 +110,7 @@ type PlayerDisplayProps = {
   showRoles?: boolean;
   showBusy?: boolean;
   includeUser?: boolean;
+  hideRoles?: boolean;
 };
 
 const defaultProps: Partial<PlayerDisplayProps> = {
@@ -119,6 +120,7 @@ const defaultProps: Partial<PlayerDisplayProps> = {
   showVotes: false,
   showRoles: false,
   showLabels: true,
+  hideRoles: false,
 };
 
 /**
@@ -207,6 +209,10 @@ export default function PlayerDisplay(
     gameState: GameState,
     playerName: string
   ): boolean => {
+    if (props.hideRoles && !isVictoryState(gameState.state)) {
+      return false;
+    }
+
     const myRole = gameState.players[props.user].id;
     const otherRole = gameState.players[playerName].id;
 
