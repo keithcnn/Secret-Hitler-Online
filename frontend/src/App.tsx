@@ -163,6 +163,7 @@ type AppState = {
   eventBarMessage: string;
   statusBarText: string;
   allAnimationsFinished: boolean;
+  areRolesHidden: boolean;
 };
 
 const defaultAppState: AppState = {
@@ -192,6 +193,7 @@ const defaultAppState: AppState = {
   eventBarMessage: "",
   statusBarText: "---",
   allAnimationsFinished: true,
+  areRolesHidden: false,
 };
 
 class App extends Component<{}, AppState> {
@@ -1118,6 +1120,7 @@ class App extends Component<{}, AppState> {
             newState.fascistPolicies === 0
           ) {
             // If the game has just started (everything in default state), show the player's role.
+            this.setState({ areRolesHidden: false });
             this.queueAlert(
               <RoleAlert
                 role={newState.players[this.state.name].id}
@@ -1719,6 +1722,7 @@ class App extends Component<{}, AppState> {
             showVotes={this.state.showVotes}
             showBusy={this.state.allAnimationsFinished} // Only show busy when there isn't an active animation.
             playerDisabledFilter={DISABLE_EXECUTED_PLAYERS}
+            hideRoles={this.state.areRolesHidden}
           />
         </div>
 
@@ -1757,6 +1761,17 @@ class App extends Component<{}, AppState> {
                 >
                   {" "}
                   END TERM
+                </button>
+
+                <button
+                  onClick={() => {
+                    this.setState((prevState) => ({
+                      areRolesHidden: !prevState.areRolesHidden,
+                    }));
+                  }}
+                  style={{ marginTop: "8px" }}
+                >
+                  {this.state.areRolesHidden ? "SHOW ROLE" : "HIDE ROLE"}
                 </button>
 
                 <PlayerPolicyStatus
