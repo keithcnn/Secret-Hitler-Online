@@ -206,6 +206,7 @@ class App extends Component<{}, AppState> {
   okMessageListeners: (() => void)[] = [];
   allAnimationsFinished: boolean = true;
   gameOver: boolean = false;
+  endTermReminderTimeout?: NodeJS.Timeout = undefined;
 
   // noinspection DuplicatedCode
   constructor(props: any) {
@@ -242,6 +243,7 @@ class App extends Component<{}, AppState> {
     this.showChangeIconAlert = this.showChangeIconAlert.bind(this);
     this.updateChangeIconAlert = this.updateChangeIconAlert.bind(this);
     this.onClickChangeIcon = this.onClickChangeIcon.bind(this);
+    this.updateEndTermReminder = this.updateEndTermReminder.bind(this);
 
     // Ping the server to wake it up if it's not currently being used
     // This reduces the delay users experience when starting lobbies
@@ -363,6 +365,10 @@ class App extends Component<{}, AppState> {
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
     }
+    if (this.endTermReminderTimeout) {
+      clearTimeout(this.endTermReminderTimeout);
+      this.endTermReminderTimeout = undefined;
+    }
 
     console.log(
       "A websocket closed: " +
@@ -442,6 +448,7 @@ class App extends Component<{}, AppState> {
         if (message !== this.state.gameState) {
           this.onGameStateChanged(message);
         }
+        this.updateEndTermReminder(message);
         this.setState({ gameState: message, page: PAGE.GAME });
         break;
 
@@ -474,6 +481,36 @@ class App extends Component<{}, AppState> {
       default:
       // No action
     }
+  }
+
+  shouldShowEndTermReminder(gameState: GameState) {
+    return (
+      gameState.state === LobbyState.POST_LEGISLATIVE &&
+      this.state.name === gameState.president
+    );
+  }
+
+  updateEndTermReminder(gameState: GameState) {
+    const shouldShow = this.shouldShowEndTermReminder(gameState);
+
+    if (!shouldShow) {
+      if (this.endTermReminderTimeout) {
+        clearTimeout(this.endTermReminderTimeout);
+        this.endTermReminderTimeout = undefined;
+      }
+      return;
+    }
+
+    if (this.endTermReminderTimeout) {
+      return;
+    }
+
+    this.endTermReminderTimeout = setTimeout(() => {
+      if (this.shouldShowEndTermReminder(this.state.gameState)) {
+        this.sendWSCommand({ command: WSCommandType.END_TERM });
+      }
+      this.endTermReminderTimeout = undefined;
+    }, 5000);
   }
 
   /**
@@ -1702,9 +1739,21 @@ class App extends Component<{}, AppState> {
    * Renders the game page.
    */
   renderGamePage() {
+    const showEndTermReminder = this.shouldShowEndTermReminder(
+      this.state.gameState
+    );
+
     return (
       <div className="App" style={{ textAlign: "center" }}>
         <header className="App-header">SECRET-HITLER.ONLINE</header>
+
+        {showEndTermReminder && (
+          <div className={"end-term-reminder"}>
+            <div className={"end-term-reminder-content"}>
+              END YOUR TURN NOW
+            </div>
+          </div>
+        )}
 
         <CustomAlert show={this.state.showAlert}>
           {this.state.alertContent}
@@ -1756,6 +1805,10 @@ class App extends Component<{}, AppState> {
                     this.state.name !== this.state.gameState[PARAM_PRESIDENT]
                   }
                   onClick={() => {
+                    if (this.endTermReminderTimeout) {
+                      clearTimeout(this.endTermReminderTimeout);
+                      this.endTermReminderTimeout = undefined;
+                    }
                     this.sendWSCommand({ command: WSCommandType.END_TERM });
                   }}
                 >

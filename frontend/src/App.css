@@ -227,3 +227,30 @@ textarea {
 #victory-header {
     width: 100%;
 }
+.end-term-reminder {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.78);
+    pointer-events: none;
+}
+
+.end-term-reminder-content {
+    font-family: var(--headerFont);
+    color: var(--textColorHighlight);
+    font-size: min(18vw, 20vh);
+    font-weight: 700;
+    line-height: 0.92;
+    text-shadow: 0 0 16px rgba(0, 0, 0, 0.8), 0 0 42px rgba(224, 91, 43, 0.85);
+    letter-spacing: 0.04em;
+    padding: 2vh 2vw;
+    animation: end-term-reminder-pulse 0.55s infinite alternate;
+}
+
+@keyframes end-term-reminder-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.06); }
+}
