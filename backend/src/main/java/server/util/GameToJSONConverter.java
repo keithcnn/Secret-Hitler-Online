@@ -114,6 +114,7 @@ public class GameToJSONConverter {
         out.put("liberalPolicies", game.getNumLiberalPolicies());
         out.put("userVotes", game.getVotes());
         out.put("vetoOccurred", game.didVetoOccurThisTurn());
+        out.put("postGameSummary", game.hasGameFinished() ? game.getInteractionLog() : new String[] {});
 
         if (game.getState() == GameState.LEGISLATIVE_PRESIDENT) {
             out.put("presidentChoices", convertPolicyListToStringArray(game.getPresidentLegislativeChoices()));

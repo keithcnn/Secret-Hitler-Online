@@ -119,6 +119,7 @@ const DEFAULT_GAME_STATE: GameState = {
   targetUser: "",
   lastPolicy: "",
   peek: [],
+  postGameSummary: [],
   icon: {},
 };
 
@@ -1524,6 +1525,14 @@ class App extends Component<{}, AppState> {
                     });
                   }}
                 >
+                  <div className="post-game-summary">
+                    <h3>Post-game summary</h3>
+                    <ol>
+                      {newState.postGameSummary?.map((entry, index) => (
+                        <li key={`summary-${index}`}>{entry}</li>
+                      ))}
+                    </ol>
+                  </div>
                   <PlayerDisplay
                     players={players}
                     playerDisabledFilter={DISABLE_NONE}
