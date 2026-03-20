@@ -51,6 +51,7 @@ export type GameState = {
   lastPolicy: string;
   vetoOccurred: boolean;
   peek?: PolicyType[];
+  postGameSummary: string[];
 
   usernames?: string[];
   /** Maps from usernames to icon keys */

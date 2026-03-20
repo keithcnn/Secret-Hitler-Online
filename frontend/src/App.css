@@ -227,6 +227,26 @@ textarea {
 #victory-header {
     width: 100%;
 }
+
+.post-game-summary {
+    max-height: 220px;
+    overflow-y: auto;
+    text-align: left;
+    margin: 0 auto 16px auto;
+    padding: 0 10px;
+    border: 1px solid var(--foregroundLight);
+    border-radius: 6px;
+}
+
+.post-game-summary h3 {
+    margin: 10px 0;
+}
+
+.post-game-summary ol {
+    margin-top: 0;
+    padding-left: 24px;
+}
+
 .end-term-reminder {
     position: fixed;
     inset: 0;

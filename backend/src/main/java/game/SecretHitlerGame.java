@@ -91,6 +91,7 @@ public class SecretHitlerGame implements Serializable {
     private boolean didVetoOccurThisTurn = false;
 
     private HashMap<String, Boolean> voteMap;
+    private List<String> interactionLog;
 
     // </editor-fold>
 
@@ -189,6 +190,7 @@ public class SecretHitlerGame implements Serializable {
         random = new Random();
         electionTracker = 0;
         voteMap = new HashMap<>();
+        interactionLog = new ArrayList<>();
 
         resetDeck();
         assignRoles();
@@ -210,6 +212,7 @@ public class SecretHitlerGame implements Serializable {
 
         state = GameState.CHANCELLOR_NOMINATION;
         round = 1;
+        addInteractionLogEntry("Game started with " + playerList.size() + " players.");
     }
 
     // </editor-fold>
@@ -364,12 +367,17 @@ public class SecretHitlerGame implements Serializable {
      *          win conditions for policies are met.
      */
     private void checkIfGameOver() {
+        if (hasGameFinished()) {
+            return;
+        }
         if (board.isFascistVictory()) {
             this.lastState = this.state;
             state = GameState.FASCIST_VICTORY_POLICY;
+            addInteractionLogEntry("Fascists won by passing 6 fascist policies.");
         } else if (board.isLiberalVictory()) {
             this.lastState = this.state;
             state = GameState.LIBERAL_VICTORY_POLICY;
+            addInteractionLogEntry("Liberals won by passing 5 liberal policies.");
         }
     }
 
@@ -443,6 +451,7 @@ public class SecretHitlerGame implements Serializable {
 
         didElectionTrackerAdvance = false; // reset the election tracker
         currentChancellor = username;
+        addInteractionLogEntry(currentPresident + " nominated " + username + " as chancellor.");
         this.lastState = this.state;
         state = GameState.CHANCELLOR_VOTING; // exits the previous state.
         voteMap = new HashMap<>(); // initializes a new map for voting.
@@ -489,6 +498,7 @@ public class SecretHitlerGame implements Serializable {
         }
 
         voteMap.put(username, vote);
+        addInteractionLogEntry(username + " voted " + (vote ? "JA" : "NEIN") + ".");
 
         // Count up votes and check if all votes have been submitted.
         boolean allPlayersHaveVoted = true;
@@ -514,13 +524,16 @@ public class SecretHitlerGame implements Serializable {
             if (((float) totalYesVotes / (float) totalVotes) > VOTING_CUTOFF) { // vote passed successfully
                 lastChancellor = currentChancellor;
                 lastPresident = currentPresident;
+                addInteractionLogEntry("Election passed: " + currentPresident + " / " + currentChancellor + ".");
                 if (getPlayer(currentChancellor).isHitler() && board.fascistsCanWinByElection()) {
                     this.lastState = this.state;
                     state = GameState.FASCIST_VICTORY_ELECTION; // Fascists won by electing Hitler: game ends.
+                    addInteractionLogEntry("Hitler was elected chancellor after 3+ fascist policies.");
                 } else {
                     startLegislativeSession();
                 }
             } else { // vote failed
+                addInteractionLogEntry("Election failed for " + currentPresident + " / " + currentChancellor + ".");
                 advanceElectionTracker();
             }
         }
@@ -537,6 +550,17 @@ public class SecretHitlerGame implements Serializable {
     }
 
     /**
+     * Returns a chronological list of interaction log entries.
+     */
+    public List<String> getInteractionLog() {
+        return new ArrayList<>(interactionLog);
+    }
+
+    private void addInteractionLogEntry(String message) {
+        interactionLog.add("[Round " + round + "] " + message);
+    }
+
+    /**
      * Advances the election tracker and enacts a policy if needed.
      * 
      * @modifies this
@@ -547,6 +571,7 @@ public class SecretHitlerGame implements Serializable {
     private void advanceElectionTracker() {
         didElectionTrackerAdvance = true;
         electionTracker += 1;
+        addInteractionLogEntry("Election tracker advanced to " + electionTracker + ".");
         if (electionTracker == MAX_FAILED_ELECTIONS) {
             if (draw.getSize() < MIN_DRAW_DECK_SIZE) {
                 shuffleDiscardIntoDraw();
@@ -555,6 +580,7 @@ public class SecretHitlerGame implements Serializable {
             board.enactPolicy(newPolicy);
             // Note that the newPolicy is NOT added back to the discard pile.
             electionTracker = 0; // Reset
+            addInteractionLogEntry("Chaos enacted a " + newPolicy.getType().toString().toUpperCase() + " policy.");
 
             onEnactPolicy(newPolicy.getType());
         } else {
@@ -595,6 +621,8 @@ public class SecretHitlerGame implements Serializable {
         if (this.state != GameState.POST_LEGISLATIVE) {
             throw new IllegalStateException();
         }
+
+        addInteractionLogEntry(currentPresident + " ended their presidential term.");
 
         if (electedPresident != null) { // If the PRESIDENTIAL_POWER_ELECTION was active, chooses the elected president.
             currentPresident = electedPresident;
@@ -703,6 +731,7 @@ public class SecretHitlerGame implements Serializable {
             throw new IndexOutOfBoundsException("Cannot discard policy at the index " + index + "");
         }
         discard.add(legislativePolicies.remove(index));
+        addInteractionLogEntry(currentPresident + " discarded one policy.");
         this.lastState = this.state;
         state = GameState.LEGISLATIVE_CHANCELLOR;
     }
@@ -754,6 +783,7 @@ public class SecretHitlerGame implements Serializable {
         Policy newPolicy = legislativePolicies.remove(index);
         board.enactPolicy(newPolicy);
         discard.add(legislativePolicies.remove(0)); // Discard last remaining Policy
+        addInteractionLogEntry(currentChancellor + " enacted a " + newPolicy.getType().toString().toUpperCase() + " policy.");
         didVetoOccurThisTurn = false; // Reset because we have moved past chancellor stage
         onEnactPolicy(newPolicy.getType());
     }
@@ -778,6 +808,7 @@ public class SecretHitlerGame implements Serializable {
             throw new IllegalStateException("Cannot veto again once veto is denied.");
         }
         didVetoOccurThisTurn = true;
+        addInteractionLogEntry(currentChancellor + " requested a veto.");
         state = GameState.LEGISLATIVE_PRESIDENT_VETO;
     }
 
@@ -804,6 +835,7 @@ public class SecretHitlerGame implements Serializable {
                     "Cannot get president veto input during state " + getState().toString() + "");
         }
         if (response) { // veto was approved, advance election tracker
+            addInteractionLogEntry(currentPresident + " approved the veto request.");
             // Empty legislative back into discard pile
             while (!legislativePolicies.isEmpty()) {
                 discard.add(legislativePolicies.remove(0));
@@ -811,6 +843,7 @@ public class SecretHitlerGame implements Serializable {
             advanceElectionTracker();
             didVetoOccurThisTurn = false;
         } else { // veto was denied, return to chancellor selection
+            addInteractionLogEntry(currentPresident + " denied the veto request.");
             this.lastState = this.state;
             state = GameState.LEGISLATIVE_CHANCELLOR;
         }
@@ -898,6 +931,7 @@ public class SecretHitlerGame implements Serializable {
      * @effects Advances the state to {@code POST_LEGISLATIVE}.
      */
     public void endPeek() {
+        addInteractionLogEntry(currentPresident + " peeked at the top three policies.");
         concludePresidentialActions();
     }
 
@@ -927,6 +961,8 @@ public class SecretHitlerGame implements Serializable {
 
         target = username;
         getPlayer(username).investigate(); // sets a flag that this player has been investigated.
+        addInteractionLogEntry(currentPresident + " investigated " + username + " and saw " +
+                (getPlayer(username).isFascist() ? "FASCIST" : "LIBERAL") + " party membership.");
         concludePresidentialActions();
 
         if (getPlayer(username).isFascist()) {
@@ -965,9 +1001,11 @@ public class SecretHitlerGame implements Serializable {
         }
 
         playerToKill.kill();
+        addInteractionLogEntry(currentPresident + " executed " + username + ".");
         if (playerToKill.isHitler()) { // game ends and liberals win.
             this.lastState = this.state;
             state = GameState.LIBERAL_VICTORY_EXECUTION;
+            addInteractionLogEntry("Hitler was executed.");
         } else {
             concludePresidentialActions();
         }
@@ -1004,6 +1042,7 @@ public class SecretHitlerGame implements Serializable {
         }
 
         electedPresident = username;
+        addInteractionLogEntry(currentPresident + " selected " + username + " as the next president.");
         concludePresidentialActions();
     }
 
